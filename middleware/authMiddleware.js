@@ -1,16 +1,18 @@
-const SECRET_KEY =  "mysecretkey";
+const jwt = require("jsonwebtoken");
 
-function authenticationToken(req, res, next){
+const SECRET_KEY = "mysecretkey";
+
+function authenticateToken(req, res, next) {
     const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split("")[1];
+    const token = authHeader && authHeader.split(" ")[1];
 
-    if(!token){
-        return res.status(401).json({ message: "Access token required "});
+    if (!token) {
+        return res.status(401).json({ message: "Access token required" });
     }
 
-    JsonWebTokenError.verify(token, SECRET_KEY, (err, user) => {
-        if(err){
-            return res.status(403).json({ message: "Invalid or expired token"});
+    jwt.verify(token, SECRET_KEY, (err, user) => {
+        if (err) {
+            return res.status(403).json({ message: "Invalid or expired token" });
         }
 
         req.user = user;
@@ -18,4 +20,4 @@ function authenticationToken(req, res, next){
     });
 }
 
-module.exports = authenticationToken;
+module.exports = authenticateToken;
