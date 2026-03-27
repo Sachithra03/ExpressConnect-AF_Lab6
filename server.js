@@ -2,6 +2,9 @@ const express = require('express');
 const app = express();
 const port = 3000;
 
+const authRoutes = require('./routes/authRoutes');
+const authenticateToken = require('./middleware/authMiddleware');
+
 //middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -19,6 +22,9 @@ let posts =[
 app.get("/", (req, res) => {
     res.send("ExpressConnect server is running.");
 });
+
+//auth routes
+app.use("/", authRoutes);
 
 // get all posts
 app.get("/posts", (req, res) => {
@@ -68,12 +74,30 @@ app.delete("/posts/:id", (req, res) => {
     const index = posts.findIndex(p => p.id == req.params.id);
 
     if(index == -1){
-        return res.status(404).json({ message: "Page not found"});
+        return res.status(404).json({ message: "Post not found"});
     }
 
     posts.splice(index, 1);
     res.json({ message: "Post deleted "});
 })
+
+//protected route
+app.post("/secure-posts", authenticateToken, (req, res) => {
+    const newPost = {
+        id: posts.length + 1,
+        title: req.body.title,
+        content: req.body.content,
+        authot: req.user.username
+    };
+
+    posts.push(newPost);
+
+    res.status(201).json({
+        message: "Protected post created.",
+        post: newPost
+
+    });
+});
 
 app.listen(port, () => {
     console.log(`ExpressConnect server is listening on port ${port}`);
