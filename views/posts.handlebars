@@ -1,4 +1,8 @@
-<h1>All Posts</h1>
+<h1>My Posts</h1>
+
+{{#if viewingUser}}
+  <p>Showing posts created by {{viewingUser}}.</p>
+{{/if}}
 
 <p>Page {{currentPage}} of {{totalPages}}</p>
 
@@ -15,13 +19,15 @@
         </div>
       {{/if}}
 
-      <div style="margin-top: 10px;">
-        <a href="/posts/edit/{{this.id}}">Edit</a>
+      {{#if ../currentUser}}
+        <div style="margin-top: 10px;">
+          <a href="/posts/edit/{{this.id}}">Edit</a>
 
-        <form action="/posts/delete/{{this.id}}" method="POST" style="display:inline;">
-          <button type="submit">Delete</button>
-        </form>
-      </div>
+          <form action="/posts/delete/{{this.id}}" method="POST" style="display:inline;">
+            <button type="submit">Delete</button>
+          </form>
+        </div>
+      {{/if}}
     </div>
   {{/each}}
 {{else}}

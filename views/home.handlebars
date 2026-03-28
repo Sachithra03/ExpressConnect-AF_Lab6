@@ -1,3 +1,20 @@
 <h1>Welcome to ExpressConnect</h1>
-<p> This page is renderd using Handlebars.</p>
-<p>Use the links above to view posts or add a new post.</p>
+<p>This page shows all users' posts publicly.</p>
+
+{{#if posts.length}}
+	{{#each posts}}
+		<div class="post">
+			<h3>{{this.title}}</h3>
+			<p>{{this.content}}</p>
+			<small>By {{this.author}}</small>
+
+			{{#if this.image}}
+				<div style="margin-top: 10px;">
+					<img src="{{this.image}}" alt="Post image" style="max-width: 200px; border-radius: 8px;">
+				</div>
+			{{/if}}
+		</div>
+	{{/each}}
+{{else}}
+	<p>No posts available yet.</p>
+{{/if}}

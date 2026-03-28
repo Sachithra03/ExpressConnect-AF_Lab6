@@ -1,6 +1,14 @@
-const authenticateToken = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
 const express = require("express");
 const multer = require("multer");
+const {
+    getAllPostsSorted,
+    getPostsByAuthorSorted,
+    getPostById,
+    createPost,
+    updatePostById,
+    deletePostById
+} = require("../data/postStore");
 const router = express.Router();
 
 const storage = multer.diskStorage({
@@ -13,19 +21,6 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
-
-// temporary data
-let posts = [
-    {
-        id: 1,
-        title: "First post",
-        content: "This is the content of the first post.",
-        author: "Admin",
-        image: null
-    }
-];
-
-let nextPostId = 2;
 
 function getPagination(page, totalItems, pageSize) {
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -46,18 +41,19 @@ function getPagination(page, totalItems, pageSize) {
 }
 
 // page - view all posts
-router.get("/view", (req, res) => {
+router.get("/view", authenticateToken, (req, res) => {
     const page = Number.parseInt(req.query.page, 10) || 1;
     const pageSize = 5;
-    const sortedPosts = [...posts].sort((a, b) => b.id - a.id);
-    const pagination = getPagination(page, sortedPosts.length, pageSize);
-    const paginatedPosts = sortedPosts.slice(pagination.startIndex, pagination.endIndex);
+    const ownPosts = getPostsByAuthorSorted(req.user.username);
+    const pagination = getPagination(page, ownPosts.length, pageSize);
+    const paginatedPosts = ownPosts.slice(pagination.startIndex, pagination.endIndex);
 
     const pageNumbers = Array.from({ length: pagination.totalPages }, (_, i) => i + 1);
 
     res.render("posts", {
-        title: "All Posts",
+        title: "My Posts",
         posts: paginatedPosts,
+        viewingUser: req.user.username,
         currentPage: pagination.page,
         totalPages: pagination.totalPages,
         hasPrev: pagination.hasPrev,
@@ -69,29 +65,27 @@ router.get("/view", (req, res) => {
 });
 
 // page - show add form
-router.get("/add", (req, res) => {
+router.get("/add", authenticateToken, (req, res) => {
     res.render("addPost", {
         title: "Add New Post"
     });
 });
 
 // page - handle add form submit
-router.post("/add", upload.single("image"), (req, res) => {
-    const newPost = {
-        id: nextPostId++,
+router.post("/add", authenticateToken, upload.single("image"), (req, res) => {
+    createPost({
         title: req.body.title,
         content: req.body.content,
-        author: req.body.author,
+        author: req.user.username,
         image: req.file ? "/uploads/" + req.file.filename : null
-    };
+    });
 
-    posts.push(newPost);
     res.redirect("/posts/view");
 });
 
 // page - show edit form
-router.get("/edit/:id", (req, res) => {
-    const post = posts.find(p => p.id == req.params.id);
+router.get("/edit/:id", authenticateToken, (req, res) => {
+    const post = getPostById(req.params.id);
 
     if (!post) {
         return res.status(404).send("Post not found");
@@ -104,55 +98,53 @@ router.get("/edit/:id", (req, res) => {
 });
 
 // page - handle edit form submit
-router.post("/edit/:id", (req, res) => {
-    const post = posts.find(p => p.id == req.params.id);
+router.post("/edit/:id", authenticateToken, (req, res) => {
+    const post = getPostById(req.params.id);
 
     if (!post) {
         return res.status(404).send("Post not found");
     }
 
-    post.title = req.body.title;
-    post.content = req.body.content;
-    post.author = req.body.author;
+    updatePostById(req.params.id, {
+        title: req.body.title,
+        content: req.body.content,
+        author: req.user.username
+    });
 
     res.redirect("/posts/view");
 });
 
 // page - delete post
-router.post("/delete/:id", (req, res) => {
-    const index = posts.findIndex(p => p.id == req.params.id);
+router.post("/delete/:id", authenticateToken, (req, res) => {
+    const deleted = deletePostById(req.params.id);
 
-    if (index === -1) {
+    if (!deleted) {
         return res.status(404).send("Post not found");
     }
 
-    posts.splice(index, 1);
     res.redirect("/posts/view");
 });
 
 // api - get all posts as JSON
 router.get("/", (req, res) => {
-    const sortedPosts = [...posts].sort((a, b) => b.id - a.id);
-    res.json(sortedPosts);
+    res.json(getAllPostsSorted());
 });
 
 // api - protected create post
 router.post("/secure", authenticateToken, (req, res) => {
-    const newPost = {
-        id: nextPostId++,
+    const newPost = createPost({
         title: req.body.title,
         content: req.body.content,
         author: req.user.username,
         image: null
-    };
+    });
 
-    posts.push(newPost);
     res.status(201).json({ message: "Post created", post: newPost });
 });
 
 // api - get post by id
 router.get("/:id", (req, res) => {
-    const post = posts.find(p => p.id == req.params.id);
+    const post = getPostById(req.params.id);
 
     if (!post) {
         return res.status(404).json({ message: "Post not found" });
@@ -163,27 +155,28 @@ router.get("/:id", (req, res) => {
 
 // api - update post
 router.put("/:id", authenticateToken, (req, res) => {
-    const post = posts.find(p => p.id == req.params.id);
+    const post = getPostById(req.params.id);
 
     if (!post) {
         return res.status(404).json({ message: "Post not found" });
     }
 
-    post.title = req.body.title || post.title;
-    post.content = req.body.content || post.content;
+    const updatedPost = updatePostById(req.params.id, {
+        title: req.body.title || post.title,
+        content: req.body.content || post.content
+    });
 
-    res.json({ message: "Post Updated", post });
+    res.json({ message: "Post Updated", post: updatedPost });
 });
 
 // api - delete post
 router.delete("/:id", authenticateToken, (req, res) => {
-    const index = posts.findIndex(p => p.id == req.params.id);
+    const deleted = deletePostById(req.params.id);
 
-    if (index == -1) {
+    if (!deleted) {
         return res.status(404).json({ message: "Post not found" });
     }
 
-    posts.splice(index, 1);
     res.json({ message: "Post deleted" });
 });
 

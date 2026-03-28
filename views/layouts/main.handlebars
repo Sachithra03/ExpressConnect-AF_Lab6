@@ -49,7 +49,14 @@
   <div class="container">
     <a href="/">Home</a>
     <a href="/posts/view">View Posts</a>
-    <a href="/posts/add">Add Post</a>
+    {{#if currentUser}}
+      <a href="/posts/add">Add Post</a>
+      <form action="/logout" method="POST" style="display:inline;">
+        <button type="submit">Logout ({{currentUser.username}})</button>
+      </form>
+    {{else}}
+      <a href="/login">Login</a>
+    {{/if}}
     <hr>
     {{{body}}}
   </div>
