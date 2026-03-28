@@ -1,0 +1,13 @@
+<h1>All Posts</h1>
+
+{{#if posts.length}}
+  {{#each posts}}
+    <div class="post">
+      <h3>{{this.title}}</h3>
+      <p>{{this.content}}</p>
+      <small>By {{this.author}}</small>
+    </div>
+  {{/each}}
+{{else}}
+  <p>No posts available.</p>
+{{/if}}

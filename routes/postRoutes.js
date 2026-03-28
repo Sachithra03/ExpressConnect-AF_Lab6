@@ -12,14 +12,23 @@ let posts =[
     }
 ];
 
-
 // get all posts
-router.get("/", (req, res) => {
-    res.json(posts);
+router.get("/view", (req, res) => {
+    res.render("posts", {
+        title: "All Posts",
+        posts: posts
+    });
+});
+
+//add post form
+router.get("/add", (req, res) => {
+    res.render("addPost", {
+        title: "Add New Post" 
+    });
 });
 
 //create a post
-router.post("/", authenticateToken, (req, res) => {
+router.post("/add", (req, res) => {
     const newPost = {
         id: posts.length + 1,
         title: req.body.title,
@@ -27,6 +36,23 @@ router.post("/", authenticateToken, (req, res) => {
         author: req.body.author
     };
 
+    posts.push(newPost);
+    res.redirect("/posts/view");
+});
+
+//get all posts as json
+router.get("/", (req, res) => {
+    res.json(posts);
+});
+
+//protected create post
+router.post("/secure", authenticateToken, (req, res) => {
+    const newPost = {
+        id: posts.length + 1,
+        title: req.body.title,
+        content: req.body.content,
+        author: req.user.username
+    };
     posts.push(newPost);
     res.status(201).json({ message: "Post created", post: newPost });
 });
@@ -66,7 +92,7 @@ router.delete("/:id", authenticateToken, (req, res) => {
 
     posts.splice(index, 1);
     res.json({ message: "Post deleted "});
-})
+});
 
 
 
