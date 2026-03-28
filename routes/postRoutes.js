@@ -25,11 +25,46 @@ let posts = [
     }
 ];
 
+let nextPostId = 2;
+
+function getPagination(page, totalItems, pageSize) {
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    const safePage = Math.min(Math.max(page, 1), totalPages);
+    const startIndex = (safePage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+
+    return {
+        page: safePage,
+        totalPages,
+        startIndex,
+        endIndex,
+        hasPrev: safePage > 1,
+        hasNext: safePage < totalPages,
+        prevPage: safePage - 1,
+        nextPage: safePage + 1
+    };
+}
+
 // page - view all posts
 router.get("/view", (req, res) => {
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const pageSize = 5;
+    const sortedPosts = [...posts].sort((a, b) => b.id - a.id);
+    const pagination = getPagination(page, sortedPosts.length, pageSize);
+    const paginatedPosts = sortedPosts.slice(pagination.startIndex, pagination.endIndex);
+
+    const pageNumbers = Array.from({ length: pagination.totalPages }, (_, i) => i + 1);
+
     res.render("posts", {
         title: "All Posts",
-        posts: posts
+        posts: paginatedPosts,
+        currentPage: pagination.page,
+        totalPages: pagination.totalPages,
+        hasPrev: pagination.hasPrev,
+        hasNext: pagination.hasNext,
+        prevPage: pagination.prevPage,
+        nextPage: pagination.nextPage,
+        pageNumbers
     });
 });
 
@@ -43,7 +78,7 @@ router.get("/add", (req, res) => {
 // page - handle add form submit
 router.post("/add", upload.single("image"), (req, res) => {
     const newPost = {
-        id: posts.length + 1,
+        id: nextPostId++,
         title: req.body.title,
         content: req.body.content,
         author: req.body.author,
@@ -97,13 +132,14 @@ router.post("/delete/:id", (req, res) => {
 
 // api - get all posts as JSON
 router.get("/", (req, res) => {
-    res.json(posts);
+    const sortedPosts = [...posts].sort((a, b) => b.id - a.id);
+    res.json(sortedPosts);
 });
 
 // api - protected create post
 router.post("/secure", authenticateToken, (req, res) => {
     const newPost = {
-        id: posts.length + 1,
+        id: nextPostId++,
         title: req.body.title,
         content: req.body.content,
         author: req.user.username,

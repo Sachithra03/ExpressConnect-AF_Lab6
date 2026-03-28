@@ -1,5 +1,7 @@
 <h1>All Posts</h1>
 
+<p>Page {{currentPage}} of {{totalPages}}</p>
+
 {{#if posts.length}}
   {{#each posts}}
     <div class="post">
@@ -24,4 +26,20 @@
   {{/each}}
 {{else}}
   <p>No posts available.</p>
+{{/if}}
+
+{{#if totalPages}}
+  <div style="margin-top: 16px;">
+    {{#if hasPrev}}
+      <a href="/posts/view?page={{prevPage}}">Previous</a>
+    {{/if}}
+
+    {{#each pageNumbers}}
+      <a href="/posts/view?page={{this}}" style="margin-right: 8px;">{{this}}</a>
+    {{/each}}
+
+    {{#if hasNext}}
+      <a href="/posts/view?page={{nextPage}}">Next</a>
+    {{/if}}
+  </div>
 {{/if}}
