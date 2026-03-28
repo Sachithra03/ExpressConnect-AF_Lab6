@@ -59,4 +59,5 @@ app.use("/posts", postRoutes);
 
 app.listen(port, () => {
     console.log(`ExpressConnect server is listening on port ${port}`);
+    console.log(`Visit http://localhost:${port} to access the application`);
 });
